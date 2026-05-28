@@ -1,0 +1,948 @@
+import { useState, useRef, useEffect, useCallback } from "react";
+
+/* ─── TOKENS ───────────────────────────────────────────── */
+const C = {
+  bg:"#F7F6F2", bgCard:"#FFFFFF", bgSurface:"#F0EEE8", bgHover:"#ECEAE2",
+  brand:"#1B4332", brandMid:"#2D6A4F", brandLight:"#D8F3DC", brandBorder:"#B7E4C7",
+  accent:"#B45309", accentLight:"#FEF3C7", accentBorder:"#FDE68A",
+  text:"#1A1917", textSub:"#3D3A34", textMuted:"#7C7869", textFaint:"#B5B2A6",
+  line:"#E5E2D9", lineMid:"#D4D0C8",
+  red:"#DC2626", redLight:"#FEF2F2", green:"#059669", greenLight:"#ECFDF5",
+  shadow:"0 1px 3px rgba(26,25,23,.07),0 1px 2px rgba(26,25,23,.04)",
+  shadowMd:"0 4px 16px rgba(26,25,23,.09),0 2px 6px rgba(26,25,23,.05)",
+  shadowLg:"0 12px 40px rgba(27,67,50,.13),0 4px 16px rgba(26,25,23,.06)",
+};
+
+const CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Outfit',sans-serif;background:#F7F6F2;color:#1A1917;-webkit-font-smoothing:antialiased;line-height:1.5;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-thumb{background:#D4D0C8;border-radius:10px;}
+button,input,textarea{font-family:inherit;cursor:pointer;border:none;background:none;}
+a{color:inherit;text-decoration:none;}
+.serif{font-family:'Lora',Georgia,serif;}
+.mono{font-family:'JetBrains Mono',monospace;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.3}30%{transform:translateY(-5px);opacity:1}}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+
+.au{animation:fadeUp .5s cubic-bezier(.22,.68,0,1.1) both;}
+.au1{animation-delay:.07s}.au2{animation-delay:.14s}.au3{animation-delay:.22s}.au4{animation-delay:.3s}
+.as{animation:scaleIn .4s cubic-bezier(.22,.68,0,1.2) both;}
+
+.nav-lnk:hover{color:#1B4332 !important;background:#ECEAE2 !important;}
+.nav-lnk.active{color:#1B4332 !important;background:#F0EEE8 !important;font-weight:600 !important;}
+.card-h:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(27,67,50,.13),0 4px 16px rgba(26,25,23,.06) !important;}
+.plan-h:hover{border-color:#1B4332 !important;transform:translateY(-3px);}
+.doc-row:hover{background:#ECEAE2 !important;}
+.send-btn:hover:not(:disabled){background:#2D6A4F !important;transform:scale(1.05);}
+.google-btn:hover{box-shadow:0 4px 18px rgba(26,25,23,.14) !important;transform:translateY(-1px);}
+.faq-row+.faq-row{border-top:1px solid #E5E2D9;}
+.mob-nav-overlay{display:none;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1024px){
+  .sidebar-desktop{display:none !important;}
+  .mob-nav-overlay{display:block;}
+}
+@media(max-width:768px){
+  .nav-links-desktop{display:none !important;}
+  .nav-ctas-desktop{display:none !important;}
+  .hero-section{padding:64px 20px 72px !important;}
+  .hero-h1{font-size:clamp(34px,9vw,56px) !important;}
+  .hero-p{font-size:16px !important;}
+  .hero-btns{flex-direction:column !important;align-items:stretch !important;}
+  .hero-btns button,.hero-btns a{width:100% !important;justify-content:center !important;}
+  .use-cases-grid{grid-template-columns:1fr 1fr !important;}
+  .features-grid{grid-template-columns:1fr !important;}
+  .steps-grid{grid-template-columns:1fr !important;gap:28px !important;}
+  .steps-connector{display:none !important;}
+  .testi-grid{grid-template-columns:1fr !important;}
+  .plans-grid{grid-template-columns:1fr !important;}
+  .stats-grid{grid-template-columns:1fr 1fr !important;}
+  .team-grid{grid-template-columns:1fr 1fr !important;}
+  .cta-section{margin:0 16px 64px !important;padding:48px 24px !important;}
+  .section-pad{padding:64px 20px !important;}
+  .footer-inner{flex-direction:column !important;align-items:flex-start !important;gap:20px !important;}
+  .login-split{flex-direction:column !important;}
+  .login-brand{display:none !important;}
+  .login-form-wrap{padding:32px 20px !important;}
+  .about-mission{grid-template-columns:1fr !important;gap:32px !important;}
+  .dash-header-doc{display:none !important;}
+  .dash-header-right .disclaimer-chip{display:none !important;}
+  .msg-max{padding:0 12px !important;}
+  .input-bar-wrap{padding:0 12px 14px !important;}
+  .welcome-pad{padding:20px 12px !important;}
+}
+@media(max-width:480px){
+  .use-cases-grid{grid-template-columns:1fr !important;}
+  .stats-grid{grid-template-columns:1fr 1fr !important;}
+  .plans-toggle{flex-wrap:wrap;}
+  .verdict-banner{flex-direction:row !important;}
+}
+`;
+
+/* ── ICONS ─────────────────────────────────────────────── */
+const Ic = {
+  home:   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+  arrow:  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>,
+  check:  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>,
+  menu:   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg>,
+  close:  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  attach: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>,
+  send:   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>,
+  logout: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>,
+  book:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>,
+  gavel:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 14l-4-4 6.5-6.5 4 4L14 14z"/><path d="M4 20l4-4"/><path d="M2 22l2-2"/></svg>,
+  shield: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+  plus:   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  warn:   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  info:   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
+  ai:     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z" fill="currentColor"/></svg>,
+  upload: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>,
+  search: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>,
+  down:   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg>,
+  save:   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>,
+};
+
+/* ── PRIMITIVES ─────────────────────────────────────────── */
+function Logo({ size="md", onClick }) {
+  const sz={sm:14,md:16,lg:22}[size], ts={sm:15,md:16,lg:20}[size];
+  return (
+    <button onClick={onClick} style={{display:"flex",alignItems:"center",gap:9,background:"none"}}>
+      <div style={{width:sz*2.2,height:sz*2.2,borderRadius:sz*.55,background:`linear-gradient(145deg,${C.brand},${C.brandMid})`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 3px 10px rgba(27,67,50,.3)`,color:"#fff"}}>
+        {Ic.home}
+      </div>
+      <div>
+        <div className="serif" style={{fontWeight:700,fontSize:ts,color:C.text,letterSpacing:"-.02em",lineHeight:1}}>HOA Helper</div>
+        <div style={{fontSize:9.5,fontWeight:600,color:C.textMuted,letterSpacing:".06em",textTransform:"uppercase",lineHeight:1,marginTop:2}}>by AI</div>
+      </div>
+    </button>
+  );
+}
+
+function Tag({children,color=C.brand,bg}) {
+  return <span style={{display:"inline-flex",alignItems:"center",gap:5,padding:"4px 11px",borderRadius:99,fontSize:11.5,fontWeight:600,letterSpacing:".04em",textTransform:"uppercase",background:bg||"rgba(27,67,50,.08)",color,border:`1px solid ${bg?"rgba(255,255,255,.2)":"rgba(27,67,50,.15)"}`}}>{children}</span>;
+}
+
+function Btn({children,onClick,variant="primary",size="md",style:s={},disabled}) {
+  const pad={sm:"8px 16px",md:"11px 22px",lg:"14px 30px"}[size];
+  const fs={sm:13,md:14,lg:15}[size];
+  const base={display:"inline-flex",alignItems:"center",gap:7,padding:pad,borderRadius:11,fontSize:fs,fontWeight:700,letterSpacing:"-.01em",transition:"all .18s",cursor:disabled?"not-allowed":"pointer",opacity:disabled?.5:1,border:"none"};
+  if(variant==="primary") return <button onClick={onClick} disabled={disabled} style={{...base,background:`linear-gradient(145deg,${C.brand},${C.brandMid})`,color:"#fff",boxShadow:`0 4px 14px rgba(27,67,50,.3)`,...s}} onMouseEnter={e=>{if(!disabled){e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow=`0 8px 22px rgba(27,67,50,.4)`;}}} onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow=`0 4px 14px rgba(27,67,50,.3)`;}}>{children}</button>;
+  if(variant==="ghost") return <button onClick={onClick} disabled={disabled} style={{...base,background:"transparent",color:C.textSub,border:`1px solid ${C.line}`,...s}} onMouseEnter={e=>e.currentTarget.style.background=C.bgHover} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>{children}</button>;
+  return <button onClick={onClick} disabled={disabled} style={{...base,background:"transparent",color:C.brand,border:`1.5px solid ${C.brand}`,...s}} onMouseEnter={e=>e.currentTarget.style.background=C.brandLight} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>{children}</button>;
+}
+
+function Avatar({name="ZB",size=36}) {
+  return <div style={{width:size,height:size,borderRadius:"50%",background:`linear-gradient(145deg,${C.brand},${C.brandMid})`,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:size*.3,fontWeight:700,flexShrink:0,boxShadow:`0 2px 8px rgba(27,67,50,.25)`}}>{name}</div>;
+}
+
+/* ── NAV ────────────────────────────────────────────────── */
+function Nav({page,setPage}) {
+  const [solid,setSolid]=useState(false);
+  const [mobileOpen,setMobileOpen]=useState(false);
+  useEffect(()=>{const f=()=>setSolid(window.scrollY>24);window.addEventListener("scroll",f);return()=>window.removeEventListener("scroll",f);},[]);
+  return (
+    <>
+      <nav style={{position:"sticky",top:0,zIndex:200,height:62,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 clamp(16px,4vw,44px)",background:solid?"rgba(247,246,242,.93)":"transparent",backdropFilter:solid?"blur(20px)":"none",borderBottom:`1px solid ${solid?C.line:"transparent"}`,transition:"all .22s"}}>
+        <Logo onClick={()=>{setPage("home");setMobileOpen(false);}}/>
+        {/* Desktop links */}
+        <div className="nav-links-desktop" style={{display:"flex",gap:2}}>
+          {[["home","Home"],["about","About"],["pricing","Pricing"]].map(([p,l])=>(
+            <button key={p} onClick={()=>setPage(p)} className={`nav-lnk ${page===p?"active":""}`}
+              style={{padding:"7px 14px",borderRadius:9,fontSize:14,fontWeight:500,color:page===p?C.brand:C.textMuted,transition:"all .15s",border:"none",background:"none"}}>{l}</button>
+          ))}
+        </div>
+        <div className="nav-ctas-desktop" style={{display:"flex",gap:8}}>
+          <Btn variant="ghost" size="sm" onClick={()=>setPage("login")}>Sign in</Btn>
+          <Btn size="sm" onClick={()=>setPage("login")} style={{borderRadius:9}}>Get started {Ic.arrow}</Btn>
+        </div>
+        {/* Mobile hamburger */}
+        <button onClick={()=>setMobileOpen(o=>!o)} style={{display:"none",width:38,height:38,borderRadius:9,background:C.bgSurface,border:`1px solid ${C.line}`,alignItems:"center",justifyContent:"center",color:C.text}} className="mob-nav-overlay">
+          {mobileOpen?Ic.close:Ic.menu}
+        </button>
+      </nav>
+      {/* Mobile menu */}
+      {mobileOpen && (
+        <div style={{position:"fixed",top:62,left:0,right:0,zIndex:199,background:"rgba(247,246,242,.97)",backdropFilter:"blur(20px)",borderBottom:`1px solid ${C.line}`,padding:"12px 16px 20px",animation:"slideDown .2s ease-out",boxShadow:C.shadowMd}}>
+          {[["home","Home"],["about","About"],["pricing","Pricing"]].map(([p,l])=>(
+            <button key={p} onClick={()=>{setPage(p);setMobileOpen(false);}}
+              style={{display:"block",width:"100%",textAlign:"left",padding:"13px 14px",borderRadius:10,fontSize:15,fontWeight:page===p?700:500,color:page===p?C.brand:C.textSub,background:page===p?C.brandLight:"transparent",marginBottom:4,border:"none"}}>
+              {l}
+            </button>
+          ))}
+          <div style={{borderTop:`1px solid ${C.line}`,marginTop:8,paddingTop:12,display:"flex",flexDirection:"column",gap:8}}>
+            <Btn variant="ghost" onClick={()=>{setPage("login");setMobileOpen(false);}} style={{width:"100%",justifyContent:"center"}}>Sign in</Btn>
+            <Btn onClick={()=>{setPage("login");setMobileOpen(false);}} style={{width:"100%",justifyContent:"center"}}>Get started free {Ic.arrow}</Btn>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ── HOME ───────────────────────────────────────────────── */
+function HomePage({setPage}) {
+  const useCases=[
+    {icon:"🏊",q:"Can I build a pool in my backyard?",tag:"ALLOWED",tc:C.green,tb:C.greenLight},
+    {icon:"🚗",q:"My neighbor parks on the street every night. Violation?",tag:"VIOLATION",tc:C.red,tb:C.redLight},
+    {icon:"🎨",q:"What colors can I paint my front door?",tag:"RESTRICTED",tc:C.accent,tb:C.accentLight},
+    {icon:"🌳",q:"Can the HOA force me to cut down my tree?",tag:"CONDITIONAL",tc:C.brand,tb:C.brandLight},
+    {icon:"📡",q:"Am I allowed to install a satellite dish?",tag:"ALLOWED",tc:C.green,tb:C.greenLight},
+    {icon:"⚡",q:"The fine I received — is it legally valid?",tag:"ANALYSIS",tc:"#6D28D9",tb:"#EDE9FE"},
+  ];
+  const features=[
+    {icon:Ic.book,title:"Plain-English Answers",desc:"Dense legal HOA documents translated into clear, direct answers you can actually use.",color:C.brand},
+    {icon:Ic.gavel,title:"Violation Detection",desc:"Describe any situation — we'll tell you if it's a rule violation and cite the exact clause.",color:C.accent},
+    {icon:Ic.shield,title:"Know Your Rights",desc:"Homeowners have rights HOA boards often don't mention. We surface them automatically.",color:"#6D28D9"},
+    {icon:Ic.search,title:"Instant Clause Search",desc:"Find any rule instantly. Search by topic, keyword, or situation across your entire CC&Rs.",color:"#0891B2"},
+  ];
+  const testimonials=[
+    {name:"Karen Mitchell",role:"Homeowner, Austin TX",text:"I was about to hire an attorney for $400/hr. HOA Helper answered my question in 30 seconds with the exact page reference.",av:"KM"},
+    {name:"Robert Okafor",role:"HOA Board President",text:"We share this with every new homeowner. It reduces complaint calls by 70% because people can look up rules themselves.",av:"RO"},
+    {name:"Lisa Tran",role:"Property Manager, 14 HOAs",text:"Managing 14 communities means 14 document sets. HOA Helper is the only way we stay on top of every ruleset.",av:"LT"},
+  ];
+  return (
+    <div>
+      {/* Hero */}
+      <section className="hero-section" style={{position:"relative",overflow:"hidden",padding:"88px clamp(20px,5vw,80px) 96px",textAlign:"center"}}>
+        <div style={{position:"absolute",inset:0,pointerEvents:"none"}}>
+          <div style={{position:"absolute",top:-150,left:"50%",transform:"translateX(-50%)",width:"min(800px,100vw)",height:600,background:"radial-gradient(ellipse 55% 45% at 50% 0%,rgba(27,67,50,.08) 0%,transparent 100%)"}}/>
+          <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity:.04}} xmlns="http://www.w3.org/2000/svg">
+            <defs><pattern id="houses" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M10 35 L30 15 L50 35 L45 35 L45 50 L15 50 L15 35 Z M22 50 L22 38 L38 38 L38 50" stroke={C.brand} strokeWidth="1.5" fill="none"/></pattern></defs>
+            <rect width="100%" height="100%" fill="url(#houses)"/>
+          </svg>
+        </div>
+        <div className="au" style={{display:"flex",justifyContent:"center",marginBottom:22}}>
+          <Tag><span style={{display:"inline-block",width:6,height:6,borderRadius:"50%",background:C.brand,animation:"pulse 2s infinite"}}/>Built specifically for HOA homeowners</Tag>
+        </div>
+        <h1 className="au au1 serif hero-h1" style={{fontSize:"clamp(36px,6vw,76px)",fontWeight:700,letterSpacing:"-.03em",lineHeight:1.08,color:C.text,maxWidth:820,margin:"0 auto 20px"}}>
+          Understand your HOA rules.<br/><span style={{color:C.brand,fontStyle:"italic"}}>Instantly.</span>
+        </h1>
+        <p className="au au2 hero-p" style={{fontSize:18,color:C.textMuted,maxWidth:540,margin:"0 auto 36px",lineHeight:1.78,fontWeight:400}}>
+          Upload your HOA's CC&Rs, bylaws, or rules document. Ask any question. Get answers with exact page citations in seconds.
+        </p>
+        <div className="au au3 hero-btns" style={{display:"flex",justifyContent:"center",gap:12,flexWrap:"wrap"}}>
+          <Btn onClick={()=>setPage("login")} size="lg" style={{borderRadius:12}}>Upload your CC&Rs free {Ic.arrow}</Btn>
+          <Btn variant="ghost" size="lg" style={{borderRadius:12}} onClick={()=>setPage("pricing")}>See how it works</Btn>
+        </div>
+        <p className="au au3" style={{marginTop:14,fontSize:12.5,color:C.textFaint}}>Free forever · No credit card · 10 questions free</p>
+        {/* Use case cards */}
+        <div className="au au4" style={{maxWidth:900,margin:"56px auto 0"}}>
+          <p style={{fontSize:12,fontWeight:700,color:C.textMuted,letterSpacing:".07em",textTransform:"uppercase",marginBottom:18}}>Real questions homeowners ask</p>
+          <div className="use-cases-grid" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+            {useCases.map((u,i)=>(
+              <div key={i} className="card-h" style={{background:"#fff",borderRadius:16,padding:"18px",border:`1px solid ${C.line}`,boxShadow:C.shadow,textAlign:"left",transition:"all .22s",cursor:"pointer"}}>
+                <div style={{fontSize:22,marginBottom:10}}>{u.icon}</div>
+                <p style={{fontSize:13,color:C.textSub,lineHeight:1.6,marginBottom:12,fontWeight:500}}>"{u.q}"</p>
+                <span style={{display:"inline-flex",padding:"3px 8px",borderRadius:99,fontSize:10,fontWeight:700,background:u.tb,color:u.tc,border:`1px solid ${u.tc}22`,letterSpacing:".04em"}}>{u.tag}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Disclaimer */}
+      <div style={{background:C.accentLight,borderTop:`1px solid ${C.accentBorder}`,borderBottom:`1px solid ${C.accentBorder}`,padding:"12px clamp(20px,5vw,48px)"}}>
+        <div style={{maxWidth:860,margin:"0 auto",display:"flex",alignItems:"flex-start",gap:10}}>
+          <span style={{color:C.accent,flexShrink:0,marginTop:1}}>{Ic.warn}</span>
+          <p style={{fontSize:13,color:C.accent,lineHeight:1.6}}><strong>Important:</strong> HOA Helper provides information, not legal advice. Always consult a licensed attorney for formal legal matters.</p>
+        </div>
+      </div>
+
+      {/* Features */}
+      <section className="section-pad" style={{padding:"96px clamp(20px,5vw,48px)",maxWidth:1100,margin:"0 auto"}}>
+        <div style={{textAlign:"center",marginBottom:60}}>
+          <Tag>How it works</Tag>
+          <h2 className="serif" style={{fontSize:"clamp(26px,4vw,50px)",fontWeight:700,letterSpacing:"-.03em",margin:"14px 0",lineHeight:1.12}}>Your HOA documents, finally readable</h2>
+          <p style={{fontSize:16,color:C.textMuted,maxWidth:460,margin:"0 auto",lineHeight:1.75}}>Stop guessing. Stop calling the management office. Get a direct answer with the exact rule cited.</p>
+        </div>
+        <div className="features-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:18}}>
+          {features.map((f,i)=>(
+            <div key={i} className="card-h" style={{background:"#fff",borderRadius:18,padding:"26px",border:`1px solid ${C.line}`,boxShadow:C.shadow,transition:"all .22s"}}>
+              <div style={{width:44,height:44,borderRadius:13,background:"rgba(27,67,50,.08)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:16,color:f.color,border:"1px solid rgba(27,67,50,.12)"}}>{f.icon}</div>
+              <h3 className="serif" style={{fontWeight:700,fontSize:17,marginBottom:8,color:C.text}}>{f.title}</h3>
+              <p style={{fontSize:14,color:C.textMuted,lineHeight:1.7}}>{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Steps */}
+      <section style={{background:"#fff",borderTop:`1px solid ${C.line}`,borderBottom:`1px solid ${C.line}`,padding:"72px clamp(20px,5vw,48px)"}}>
+        <div style={{maxWidth:860,margin:"0 auto"}}>
+          <div style={{textAlign:"center",marginBottom:48}}>
+            <Tag>3 steps</Tag>
+            <h2 className="serif" style={{fontSize:"clamp(24px,3.5vw,42px)",fontWeight:700,letterSpacing:"-.03em",margin:"12px 0 0",lineHeight:1.12}}>Start getting answers in under 2 minutes</h2>
+          </div>
+          <div className="steps-grid" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:36,position:"relative"}}>
+            <div className="steps-connector" style={{position:"absolute",top:32,left:"calc(16.6% + 10px)",right:"calc(16.6% + 10px)",height:1,background:`linear-gradient(90deg,${C.brand},${C.brandMid})`,opacity:.22}}/>
+            {[{emoji:"📄",n:"01",t:"Upload your document",d:"Drag & drop your CC&Rs, bylaws, or any HOA PDF. Supports files up to 500 pages."},{emoji:"💬",n:"02",t:"Ask your question",d:'Type naturally — "Can I put a basketball hoop in my driveway?" — and get an answer.'},{emoji:"✅",n:"03",t:"Get cited answers",d:"See a clear answer with the exact page and clause from your document. No ambiguity."}].map((s,i)=>(
+              <div key={i} style={{textAlign:"center",position:"relative",zIndex:1}}>
+                <div style={{width:64,height:64,borderRadius:"50%",background:`linear-gradient(145deg,${C.brand},${C.brandMid})`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",fontSize:26,boxShadow:`0 6px 20px rgba(27,67,50,.28)`}}>{s.emoji}</div>
+                <div className="mono" style={{fontSize:10,fontWeight:500,color:C.textFaint,letterSpacing:".06em",marginBottom:6}}>{s.n}</div>
+                <h3 className="serif" style={{fontWeight:700,fontSize:16,color:C.text,marginBottom:8}}>{s.t}</h3>
+                <p style={{fontSize:13.5,color:C.textMuted,lineHeight:1.7}}>{s.d}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section style={{padding:"72px clamp(20px,5vw,48px)"}}>
+        <div style={{textAlign:"center",marginBottom:48}}>
+          <Tag bg={C.accentLight} color={C.accent}>Homeowners love it</Tag>
+          <h2 className="serif" style={{fontSize:"clamp(24px,3.5vw,44px)",fontWeight:700,letterSpacing:"-.03em",margin:"12px 0 0"}}>Trusted by homeowners and HOA boards</h2>
+        </div>
+        <div className="testi-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:18,maxWidth:1000,margin:"0 auto"}}>
+          {testimonials.map((t,i)=>(
+            <div key={i} style={{background:"#fff",borderRadius:18,padding:"26px",border:`1px solid ${C.line}`,boxShadow:C.shadow}}>
+              <div style={{display:"flex",gap:2,marginBottom:12}}>{[0,1,2,3,4].map(j=><span key={j} style={{color:"#F59E0B",fontSize:13}}>★</span>)}</div>
+              <p className="serif" style={{fontSize:14.5,color:C.textSub,lineHeight:1.78,marginBottom:18,fontStyle:"italic"}}>"{t.text}"</p>
+              <div style={{display:"flex",alignItems:"center",gap:9}}>
+                <Avatar name={t.av} size={36}/>
+                <div><div style={{fontWeight:700,fontSize:13,color:C.text}}>{t.name}</div><div style={{fontSize:12,color:C.textMuted}}>{t.role}</div></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section style={{padding:"0 clamp(16px,4vw,48px) 88px"}}>
+        <div className="cta-section" style={{maxWidth:820,margin:"0 auto",background:`linear-gradient(145deg,${C.brand},${C.brandMid})`,borderRadius:24,padding:"68px clamp(24px,5vw,60px)",textAlign:"center",position:"relative",overflow:"hidden",boxShadow:`0 24px 64px rgba(27,67,50,.28)`}}>
+          <div style={{position:"absolute",top:-50,right:-50,width:200,height:200,borderRadius:"50%",background:"rgba(255,255,255,.06)"}}/>
+          <Tag bg="rgba(255,255,255,.15)" color="#fff">Free to start</Tag>
+          <h2 className="serif" style={{fontSize:"clamp(24px,4vw,46px)",fontWeight:700,color:"#fff",letterSpacing:"-.03em",margin:"16px 0 12px",lineHeight:1.12,position:"relative"}}>Stop guessing what your HOA allows.</h2>
+          <p style={{color:"rgba(255,255,255,.72)",fontSize:16,marginBottom:30,lineHeight:1.75,position:"relative"}}>Upload your CC&Rs and get your first 10 answers free.</p>
+          <button onClick={()=>setPage("login")} style={{background:"#fff",color:C.brand,padding:"13px 30px",borderRadius:12,fontSize:15,fontWeight:800,border:"none",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:9,boxShadow:"0 6px 20px rgba(0,0,0,.18)",transition:"all .18s"}}
+            onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";}} onMouseLeave={e=>{e.currentTarget.style.transform="";}}>
+            Upload your HOA document {Ic.arrow}
+          </button>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer style={{borderTop:`1px solid ${C.line}`,padding:"28px clamp(20px,5vw,48px)"}}>
+        <div className="footer-inner" style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:14}}>
+          <Logo size="sm"/>
+          <div style={{display:"flex",gap:20,flexWrap:"wrap"}}>{["Privacy","Terms","Legal Notice","Contact"].map(l=><span key={l} style={{fontSize:13,color:C.textMuted,cursor:"pointer"}}>{l}</span>)}</div>
+          <span style={{fontSize:12,color:C.textFaint}}>© 2025 HOA Helper, Inc.</span>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+/* ── ABOUT ──────────────────────────────────────────────── */
+function AboutPage({setPage}) {
+  const stats=[{n:"90K+",l:"Questions answered"},{n:"8K+",l:"HOA documents"},{n:"50 states",l:"Coverage"},{n:"4.8★",l:"Rating"}];
+  const values=[
+    {icon:"⚖️",t:"We're not lawyers",d:"HOA Helper is an AI information tool, not a law firm. We are transparent about this in every response."},
+    {icon:"🔒",t:"Your documents stay private",d:"We never share or train on your HOA documents. They're encrypted and belong to you alone."},
+    {icon:"🎯",t:"Niche focus, done right",d:"We don't try to be everything. We are the best tool for understanding HOA documents, period."},
+    {icon:"🏘️",t:"Built for real communities",d:"Every feature was designed with actual homeowners and HOA managers to solve real frustrations."},
+  ];
+  return (
+    <div>
+      <section style={{textAlign:"center",padding:"72px clamp(20px,5vw,48px) 64px",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:-80,left:"50%",transform:"translateX(-50%)",width:"min(700px,100vw)",height:500,background:"radial-gradient(ellipse,rgba(27,67,50,.07) 0%,transparent 70%)",pointerEvents:"none"}}/>
+        <div className="au"><Tag>Our Story</Tag></div>
+        <h1 className="au au1 serif" style={{fontSize:"clamp(30px,5vw,62px)",fontWeight:700,letterSpacing:"-.035em",margin:"16px auto 18px",maxWidth:700,lineHeight:1.1}}>We've all been there.<br/><span style={{color:C.brand,fontStyle:"italic"}}>Buried in HOA paperwork.</span></h1>
+        <p className="au au2" style={{fontSize:16.5,color:C.textMuted,maxWidth:540,margin:"0 auto",lineHeight:1.8}}>HOA Helper was built after one of our founders received a $350 fine for a fence color — explicitly permitted in the bylaws. A 90-second AI query would have prevented it.</p>
+      </section>
+      <div className="stats-grid" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",maxWidth:860,margin:"0 auto 72px",borderRadius:20,overflow:"hidden",boxShadow:C.shadowMd,border:`1px solid ${C.line}`}}>
+        {stats.map((s,i)=>(
+          <div key={i} style={{background:"#fff",padding:"28px 16px",textAlign:"center",borderRight:i<3?`1px solid ${C.line}`:"none"}}>
+            <div className="serif" style={{fontSize:38,fontWeight:700,color:C.brand,letterSpacing:"-.04em",lineHeight:1}}>{s.n}</div>
+            <div style={{fontSize:12.5,color:C.textMuted,marginTop:5,fontWeight:500}}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+      <section className="about-mission" style={{maxWidth:980,margin:"0 auto 80px",padding:"0 clamp(20px,5vw,48px)",display:"grid",gridTemplateColumns:"1fr 1fr",gap:56,alignItems:"center"}}>
+        <div>
+          <Tag color={C.green} bg={C.greenLight}>Mission</Tag>
+          <h2 className="serif" style={{fontSize:"clamp(24px,3.5vw,40px)",fontWeight:700,letterSpacing:"-.03em",margin:"14px 0",lineHeight:1.15}}>Making knowledge instantly accessible</h2>
+          <p style={{fontSize:15,color:C.textMuted,lineHeight:1.8,marginBottom:14}}>We're building tools that eliminate the friction between you and the information locked inside your documents. Whether it's a 300-page legal agreement or a dense research paper — DocuMind turns it into a conversation.</p>
+          <p style={{fontSize:15,color:C.textMuted,lineHeight:1.8}}>Founded in 2023 across Baku and San Francisco by researchers obsessed with making AI feel useful, not gimmicky.</p>
+        </div>
+        <div style={{background:`linear-gradient(140deg,${C.brandLight},rgba(183,228,199,.2))`,borderRadius:22,padding:32,border:`1px solid ${C.brandBorder}`,display:"flex",flexDirection:"column",gap:14}}>
+          {["GPT-4o with document grounding","Real-time PDF parsing engine","100+ format support incl. scanned docs","AES-256 encryption, zero data retention","SOC 2 Type II & GDPR certified"].map((item,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:11}}>
+              <div style={{width:22,height:22,borderRadius:7,background:`linear-gradient(145deg,${C.brand},${C.brandMid})`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"#fff"}}>{Ic.check}</div>
+              <span style={{fontSize:14,fontWeight:600,color:C.textSub}}>{item}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+      <section style={{background:"#fff",borderTop:`1px solid ${C.line}`,borderBottom:`1px solid ${C.line}`,padding:"64px clamp(20px,5vw,48px)"}}>
+        <div style={{textAlign:"center",marginBottom:44}}><Tag>Values</Tag><h2 className="serif" style={{fontSize:"clamp(24px,3.5vw,40px)",fontWeight:700,letterSpacing:"-.03em",margin:"12px 0 0"}}>What we stand for</h2></div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:18,maxWidth:960,margin:"0 auto"}}>
+          {values.map((v,i)=>(
+            <div key={i} style={{padding:"26px",borderRadius:18,border:`1px solid ${C.line}`,background:C.bg}}>
+              <div style={{fontSize:24,marginBottom:12}}>{v.icon}</div>
+              <h3 className="serif" style={{fontWeight:700,fontSize:16,marginBottom:8,color:C.text}}>{v.t}</h3>
+              <p style={{fontSize:13.5,color:C.textMuted,lineHeight:1.7}}>{v.d}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+      <section style={{padding:"64px clamp(20px,5vw,48px)",textAlign:"center"}}>
+        <h2 className="serif" style={{fontSize:"clamp(26px,4vw,38px)",fontWeight:700,letterSpacing:"-.03em",marginBottom:12}}>Ready to understand your HOA?</h2>
+        <p style={{color:C.textMuted,fontSize:16,marginBottom:26}}>Upload your CC&Rs and get started in 2 minutes.</p>
+        <Btn onClick={()=>setPage("login")} size="lg">Get started free {Ic.arrow}</Btn>
+      </section>
+    </div>
+  );
+}
+
+/* ── PRICING ────────────────────────────────────────────── */
+function PricingPage({setPage}) {
+  const [annual,setAnnual]=useState(true);
+  const [openFaq,setOpenFaq]=useState(null);
+  const plans=[
+    {name:"Homeowner",price:0,desc:"For individual homeowners",cta:"Start free",pop:false,
+     features:["1 HOA document","First 10 questions free","Page citations included","Email support"]},
+    {name:"Member",price:annual?9:12,desc:"For active homeowners & renters",cta:"Start 14-day free trial",pop:true,
+     features:["Unlimited documents","Unlimited questions","Violation analysis","Rights & obligations report","Document comparison","Priority support","Export answers as PDF"]},
+    {name:"Board / Manager",price:annual?39:49,desc:"For HOA boards and property managers",cta:"Contact us",pop:false,
+     features:["Everything in Member","Unlimited HOA communities","Team access (5 seats)","Bulk document upload","White-label option","Dedicated onboarding","SLA support"]},
+  ];
+  const faqs=[
+    {q:"What document types do you support?",a:"We support any PDF including CC&Rs, bylaws, rules & regulations, architectural guidelines, and board minutes. Scanned documents work too via OCR."},
+    {q:"Is this legal advice?",a:"No. HOA Helper provides information based on your uploaded documents. It is not a substitute for advice from a licensed attorney. We clearly label this in every response."},
+    {q:"Can I upload my HOA's document even if I don't own it?",a:"Yes — HOA governing documents are typically provided to homeowners and are often publicly recorded. You may upload documents you have received through legitimate means."},
+    {q:"What if my HOA document is outdated?",a:"Upload the most recent version you have. If you're unsure, check your county recorder's office or ask your HOA management company for the current recorded documents."},
+    {q:"Is my document private?",a:"Absolutely. Documents are encrypted with AES-256 and never shared or used for training. You can delete your documents at any time."},
+  ];
+  return (
+    <div>
+      <section style={{textAlign:"center",padding:"72px clamp(20px,5vw,48px) 56px"}}>
+        <div className="au"><Tag>Pricing</Tag></div>
+        <h1 className="au au1 serif" style={{fontSize:"clamp(30px,5vw,58px)",fontWeight:700,letterSpacing:"-.04em",margin:"14px auto",lineHeight:1.08,maxWidth:600}}>Simple pricing for every homeowner</h1>
+        <p className="au au2" style={{fontSize:16.5,color:C.textMuted,marginBottom:30}}>Start free. Upgrade when you need more.</p>
+        <div className="au au2 plans-toggle" style={{display:"inline-flex",background:"#fff",border:`1px solid ${C.line}`,borderRadius:11,padding:4,boxShadow:C.shadow}}>
+          {[[false,"Monthly"],[true,"Annual"]].map(([a,l])=>(
+            <button key={l} onClick={()=>setAnnual(a)} style={{padding:"8px 18px",borderRadius:8,fontSize:13.5,fontWeight:700,background:annual===a?C.brand:"transparent",color:annual===a?"#fff":C.textMuted,transition:"all .18s",display:"flex",alignItems:"center",gap:7,border:"none",cursor:"pointer"}}>
+              {l}{a&&<span style={{background:"#DCFCE7",color:"#166534",fontSize:10,fontWeight:800,padding:"2px 7px",borderRadius:8}}>–25%</span>}
+            </button>
+          ))}
+        </div>
+      </section>
+      <section className="plans-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(270px,1fr))",gap:16,maxWidth:980,margin:"0 auto 72px",padding:"0 clamp(16px,4vw,48px)"}}>
+        {plans.map((p,i)=>(
+          <div key={i} className="plan-h" style={{background:"#fff",borderRadius:22,border:p.pop?`2px solid ${C.brand}`:`1px solid ${C.line}`,padding:"28px 24px",boxShadow:p.pop?C.shadowLg:C.shadow,position:"relative",transition:"all .22s"}}>
+            {p.pop&&<div style={{position:"absolute",top:-13,left:"50%",transform:"translateX(-50%)",background:`linear-gradient(135deg,${C.brand},${C.brandMid})`,color:"#fff",fontSize:10.5,fontWeight:800,padding:"4px 14px",borderRadius:20,whiteSpace:"nowrap",letterSpacing:".05em"}}>MOST POPULAR</div>}
+            <div style={{fontSize:11.5,fontWeight:700,color:C.textMuted,textTransform:"uppercase",letterSpacing:".07em",marginBottom:6}}>{p.name}</div>
+            <div style={{display:"flex",alignItems:"baseline",gap:3,margin:"10px 0 6px"}}>
+              <span className="serif" style={{fontSize:48,fontWeight:700,letterSpacing:"-.05em",color:C.text}}>${p.price}</span>
+              {p.price>0&&<span style={{fontSize:14,color:C.textMuted}}>/mo</span>}
+            </div>
+            <p style={{fontSize:13,color:C.textMuted,marginBottom:20}}>{p.desc}</p>
+            <button onClick={()=>setPage("login")} style={{width:"100%",padding:"11px",borderRadius:11,fontSize:14,fontWeight:700,background:p.pop?`linear-gradient(145deg,${C.brand},${C.brandMid})`:"transparent",color:p.pop?"#fff":C.brand,border:p.pop?"none":`1.5px solid ${C.brand}`,cursor:"pointer",marginBottom:20,transition:"all .18s",boxShadow:p.pop?`0 6px 18px rgba(27,67,50,.3)`:"none"}}>{p.cta}</button>
+            <div style={{width:"100%",height:1,background:C.line,marginBottom:16}}/>
+            {p.features.map((f,j)=>(
+              <div key={j} style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:9}}>
+                <div style={{width:18,height:18,borderRadius:5,background:p.pop?C.brandLight:C.bgSurface,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2,color:C.brand}}>{Ic.check}</div>
+                <span style={{fontSize:13.5,color:C.textSub,fontWeight:500,lineHeight:1.5}}>{f}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </section>
+      <section style={{maxWidth:640,margin:"0 auto 80px",padding:"0 clamp(16px,4vw,48px)"}}>
+        <h2 className="serif" style={{fontSize:"clamp(22px,3vw,36px)",fontWeight:700,letterSpacing:"-.03em",textAlign:"center",marginBottom:36}}>Common questions</h2>
+        <div style={{background:"#fff",border:`1px solid ${C.line}`,borderRadius:18,overflow:"hidden",boxShadow:C.shadow}}>
+          {faqs.map((f,i)=>(
+            <div key={i} className="faq-row">
+              <button onClick={()=>setOpenFaq(openFaq===i?null:i)} style={{width:"100%",padding:"16px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",background:"none",cursor:"pointer",gap:12}}>
+                <span className="serif" style={{fontWeight:600,fontSize:14.5,color:C.text,textAlign:"left",lineHeight:1.4}}>{f.q}</span>
+                <div style={{transform:openFaq===i?"rotate(180deg)":"rotate(0)",transition:"transform .2s",color:C.brand,flexShrink:0}}>{Ic.down}</div>
+              </button>
+              {openFaq===i&&<div style={{padding:"0 20px 16px",fontSize:14,color:C.textMuted,lineHeight:1.75}}>{f.a}</div>}
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ── LOGIN ──────────────────────────────────────────────── */
+function LoginPage({setPage,setLoggedIn}) {
+  const [loading,setLoading]=useState(false);
+  const [mode,setMode]=useState("signin");
+  const handleGoogle=()=>{setLoading(true);setTimeout(()=>{setLoading(false);setLoggedIn(true);setPage("dashboard");},1800);};
+  const handleEmail=()=>{setLoggedIn(true);setPage("dashboard");};
+  return (
+    <div className="login-split" style={{minHeight:"100vh",display:"flex",alignItems:"stretch",background:C.bg}}>
+      {/* Brand panel */}
+      <div className="login-brand" style={{flex:"0 0 44%",background:`linear-gradient(155deg,${C.brand},${C.brandMid})`,padding:"0 clamp(32px,5vw,60px)",display:"flex",flexDirection:"column",justifyContent:"center",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:-60,right:-60,width:260,height:260,borderRadius:"50%",background:"rgba(255,255,255,.06)"}}/>
+        <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity:.06}} xmlns="http://www.w3.org/2000/svg">
+          <defs><pattern id="h2" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M10 35 L30 15 L50 35 L45 35 L45 50 L15 50 L15 35 Z M22 50 L22 38 L38 38 L38 50" stroke="#fff" strokeWidth="1.2" fill="none"/></pattern></defs>
+          <rect width="100%" height="100%" fill="url(#h2)"/>
+        </svg>
+        <div style={{position:"relative"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:48}}>
+            <div style={{width:36,height:36,borderRadius:11,background:"rgba(255,255,255,.15)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",border:"1px solid rgba(255,255,255,.25)"}}>{Ic.home}</div>
+            <span className="serif" style={{fontWeight:700,fontSize:18,color:"#fff",letterSpacing:"-.02em"}}>HOA Helper</span>
+          </div>
+          <h2 className="serif" style={{fontSize:"clamp(24px,3vw,38px)",fontWeight:700,color:"#fff",letterSpacing:"-.03em",lineHeight:1.18,marginBottom:16}}>Your HOA rules,<br/>explained clearly.</h2>
+          <p style={{fontSize:15,color:"rgba(255,255,255,.7)",lineHeight:1.8,maxWidth:300,marginBottom:44}}>Upload your CC&Rs. Ask any question. Get answers with exact citations — in seconds.</p>
+          {[["📄","Supports CC&Rs, bylaws, all HOA docs"],["📌","Exact page citations on every answer"],["⚖️","Not legal advice — always transparent"]].map(([icon,text],i)=>(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:11,marginBottom:11}}>
+              <div style={{width:32,height:32,borderRadius:9,background:"rgba(255,255,255,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,border:"1px solid rgba(255,255,255,.15)",flexShrink:0}}>{icon}</div>
+              <span style={{fontSize:14,color:"rgba(255,255,255,.82)",fontWeight:500}}>{text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Form */}
+      <div className="login-form-wrap" style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:"40px clamp(20px,5vw,48px)"}}>
+        <div className="as" style={{width:"100%",maxWidth:400}}>
+          <div style={{marginBottom:30}}>
+            <h1 className="serif" style={{fontSize:28,fontWeight:700,letterSpacing:"-.03em",color:C.text,marginBottom:8}}>{mode==="signin"?"Welcome back":"Create your account"}</h1>
+            <p style={{fontSize:14,color:C.textMuted}}>{mode==="signin"?"Sign in to your HOA Helper account":"Get started free — no credit card needed"}</p>
+          </div>
+          <button className="google-btn" onClick={handleGoogle} disabled={loading}
+            style={{width:"100%",padding:"12px 18px",borderRadius:13,background:"#fff",border:`1.5px solid ${C.line}`,display:"flex",alignItems:"center",justifyContent:"center",gap:11,fontSize:15,fontWeight:700,color:C.text,cursor:loading?"wait":"pointer",boxShadow:C.shadow,transition:"all .18s",marginBottom:18}}>
+            {loading?<div style={{width:22,height:22,border:`2.5px solid ${C.line}`,borderTopColor:C.brand,borderRadius:"50%",animation:"spin .75s linear infinite"}}/>:<svg width="22" height="22" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>}
+            {loading?"Connecting to Google…":"Continue with Google"}
+          </button>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:18}}>
+            <div style={{flex:1,height:1,background:C.line}}/><span style={{fontSize:12,fontWeight:600,color:C.textFaint}}>or</span><div style={{flex:1,height:1,background:C.line}}/>
+          </div>
+          {[["Email address","email","you@example.com"],["Password","password","••••••••"]].map(([label,type,ph])=>(
+            <div key={type} style={{marginBottom:12}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                <label style={{fontSize:12.5,fontWeight:700,color:C.textSub,letterSpacing:".02em"}}>{label}</label>
+                {type==="password"&&mode==="signin"&&<span style={{fontSize:12.5,color:C.brand,cursor:"pointer",fontWeight:600}}>Forgot?</span>}
+              </div>
+              <input type={type} placeholder={ph} style={{width:"100%",padding:"11px 13px",borderRadius:11,border:`1.5px solid ${C.line}`,fontSize:14,color:C.text,background:C.bg,transition:"border-color .15s",outline:"none"}}
+                onFocus={e=>e.target.style.borderColor=C.brand} onBlur={e=>e.target.style.borderColor=C.line}/>
+            </div>
+          ))}
+          <button onClick={handleEmail} style={{width:"100%",padding:"13px",marginTop:16,borderRadius:12,fontSize:15,fontWeight:800,background:`linear-gradient(145deg,${C.brand},${C.brandMid})`,color:"#fff",boxShadow:`0 6px 20px rgba(27,67,50,.35)`,border:"none",cursor:"pointer",transition:"all .18s"}}
+            onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-1px)";}} onMouseLeave={e=>{e.currentTarget.style.transform="";}}
+          >{mode==="signin"?"Sign in":"Create account"}</button>
+          <p style={{textAlign:"center",fontSize:13,color:C.textMuted,marginTop:18}}>
+            {mode==="signin"?"Don't have an account? ":"Already have an account? "}
+            <button onClick={()=>setMode(mode==="signin"?"signup":"signin")} style={{background:"none",color:C.brand,fontWeight:700,fontSize:13,cursor:"pointer"}}>{mode==="signin"?"Sign up free":"Sign in"}</button>
+          </p>
+          <p style={{textAlign:"center",fontSize:11.5,color:C.textFaint,marginTop:14,lineHeight:1.7}}>
+            By continuing you agree to our <span style={{color:C.brand,cursor:"pointer"}}>Terms</span> and <span style={{color:C.brand,cursor:"pointer"}}>Privacy Policy</span>. This service does not provide legal advice.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── DASHBOARD DATA ─────────────────────────────────────── */
+const DOCS_DATA=[
+  {id:1,name:"Maplewood CC&Rs 2023.pdf",pages:74,size:"3.1 MB",date:"Today",color:C.brand},
+  {id:2,name:"Bylaws & Amendments.pdf",pages:32,size:"1.4 MB",date:"Yesterday",color:C.brandMid},
+  {id:3,name:"Architectural Guidelines.pdf",pages:28,size:"2.0 MB",date:"Jun 12",color:C.accent},
+  {id:4,name:"Rules & Regulations 2024.pdf",pages:18,size:"0.9 MB",date:"Jun 9",color:"#0891B2"},
+];
+const CONVS_DATA=[
+  {id:1,title:"Can I install a fence over 6ft?",doc:"CC&Rs 2023",time:"1h ago",tag:"ALLOWED",tc:C.green,tb:C.greenLight},
+  {id:2,title:"Parking violation — neighbor's RV",doc:"Rules & Regulations",time:"3h ago",tag:"VIOLATION",tc:C.red,tb:C.redLight},
+  {id:3,title:"Painting my door a dark color",doc:"Architectural Guide",time:"1d ago",tag:"RESTRICTED",tc:C.accent,tb:C.accentLight},
+  {id:4,title:"Is the late fee legally enforceable?",doc:"Bylaws",time:"2d ago",tag:"ANALYSIS",tc:"#6D28D9",tb:"#EDE9FE"},
+];
+const INIT_MSG={id:1,role:"ai",text:"Hello! I've loaded **Maplewood CC&Rs 2023.pdf** (74 pages). Ask me anything about your HOA rules — what's allowed, what's prohibited, what are your rights. I'll cite the exact clause and page number.",citations:[],tag:null,time:"10:31 AM"};
+const VERDICT_CFG={
+  ALLOWED:    {color:C.green,  bg:C.greenLight,  border:"rgba(5,150,105,.2)",  icon:"✓",label:"Allowed"},
+  VIOLATION:  {color:C.red,    bg:C.redLight,    border:"rgba(220,38,38,.2)",  icon:"✕",label:"Violation"},
+  RESTRICTED: {color:C.accent, bg:C.accentLight, border:"rgba(180,83,9,.2)",   icon:"⚠",label:"Restricted"},
+  CONDITIONAL:{color:"#B45309",bg:"#FEF3C7",     border:"rgba(180,83,9,.2)",   icon:"◐",label:"Conditional"},
+  ANALYSIS:   {color:"#6D28D9",bg:"#EDE9FE",     border:"rgba(109,40,217,.2)", icon:"◎",label:"Analysis"},
+};
+const SUGGESTED_GROUPS=[
+  {cat:"🏗️ Modifications",qs:["Can I build a deck or patio?","Can I install solar panels?","Can I add a shed or outbuilding?","What fence height is permitted?"]},
+  {cat:"🚗 Parking & Vehicles",qs:["Can I park an RV or boat in my driveway?","What are the street parking rules?","Is a commercial vehicle allowed at home?","Can I park on the lawn temporarily?"]},
+  {cat:"🐾 Pets & Neighbors",qs:["How many pets am I allowed?","What counts as a noise nuisance?","Can my neighbor run a home business?","What are the rules for outdoor trash cans?"]},
+  {cat:"⚖️ Fines & Rights",qs:["Is my HOA fine legally valid?","Can the HOA enter my property?","How do I appeal a violation notice?","Can I rent my home on Airbnb?"]},
+];
+
+function DocBadge({color}) {
+  return (
+    <svg width="30" height="36" viewBox="0 0 32 38" fill="none">
+      <rect width="32" height="38" rx="5" fill={color} fillOpacity=".1"/>
+      <path d="M6 8h13l7 7v15a2 2 0 01-2 2H6a2 2 0 01-2-2V10a2 2 0 012-2z" fill={color} fillOpacity=".18"/>
+      <path d="M19 8l7 7h-5a2 2 0 01-2-2V8z" fill={color} fillOpacity=".4"/>
+      <rect x="8" y="20" width="12" height="1.5" rx=".75" fill={color} fillOpacity=".6"/>
+      <rect x="8" y="24" width="16" height="1.5" rx=".75" fill={color} fillOpacity=".45"/>
+      <rect x="8" y="28" width="9" height="1.5" rx=".75" fill={color} fillOpacity=".35"/>
+    </svg>
+  );
+}
+
+function renderMd(text) {
+  return text.split(/(\*\*[^*]+\*\*)/).map((p,i)=>
+    p.startsWith("**")&&p.endsWith("**")
+      ?<strong key={i} style={{fontWeight:700}}>{p.slice(2,-2)}</strong>
+      :p.split("\n").map((l,j,a)=><span key={`${i}-${j}`}>{l}{j<a.length-1&&<br/>}</span>)
+  );
+}
+
+function VerdictBanner({tag}) {
+  if(!tag) return null;
+  const v=VERDICT_CFG[tag.label]||{color:tag.color,bg:tag.bg,border:"rgba(0,0,0,.1)",icon:"◎",label:tag.label};
+  return (
+    <div className="verdict-banner" style={{display:"flex",alignItems:"center",gap:11,padding:"11px 14px",borderRadius:12,background:v.bg,border:`1.5px solid ${v.border}`,marginBottom:8}}>
+      <div style={{width:34,height:34,borderRadius:10,background:v.color,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:16,fontWeight:700,flexShrink:0,boxShadow:`0 3px 10px ${v.color}44`}}>{v.icon}</div>
+      <div>
+        <div style={{fontSize:10,fontWeight:700,color:v.color,letterSpacing:".07em",textTransform:"uppercase",marginBottom:1}}>Verdict</div>
+        <div className="serif" style={{fontSize:16,fontWeight:700,color:v.color}}>{v.label}</div>
+      </div>
+    </div>
+  );
+}
+
+function exportAnswer(msg) {
+  const lines=["HOA HELPER — ANSWER EXPORT","=".repeat(40),`Date: ${new Date().toLocaleDateString()}`,`Verdict: ${msg.tag?.label||"—"}`,"","ANSWER","-".repeat(40),msg.text.replace(/\*\*/g,""),""];
+  if(msg.citations?.length){lines.push("CITED CLAUSES","-".repeat(40));msg.citations.forEach(c=>lines.push(`p.${c.page} ${c.clause} — ${c.text}`));lines.push("");}
+  lines.push("NOTE: This is information only, not legal advice.");
+  const blob=new Blob([lines.join("\n")],{type:"text/plain"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="hoa-answer.txt";a.click();
+}
+
+function WelcomeState({onSend,docName}) {
+  const [openCat,setOpenCat]=useState(0);
+  return (
+    <div className="welcome-pad" style={{maxWidth:700,margin:"0 auto",padding:"24px clamp(12px,3vw,24px)"}}>
+      <div style={{background:"#fff",border:`1px solid ${C.line}`,borderRadius:18,padding:"22px",marginBottom:18,boxShadow:C.shadow}}>
+        <div style={{display:"flex",alignItems:"center",gap:11,marginBottom:14,flexWrap:"wrap"}}>
+          <div style={{width:42,height:42,borderRadius:12,background:`linear-gradient(145deg,${C.brand},${C.brandMid})`,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",boxShadow:`0 4px 12px rgba(27,67,50,.28)`,flexShrink:0}}>{Ic.book}</div>
+          <div style={{flex:1,minWidth:0}}>
+            <div className="serif" style={{fontWeight:700,fontSize:14.5,color:C.text}}>Document loaded</div>
+            <div style={{fontSize:12,color:C.textMuted,marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{docName}</div>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:5,padding:"4px 10px",borderRadius:20,background:C.greenLight,border:`1px solid rgba(5,150,105,.18)`,flexShrink:0}}>
+            <div style={{width:6,height:6,borderRadius:"50%",background:C.green,animation:"pulse 2.5s infinite"}}/>
+            <span style={{fontSize:11,fontWeight:700,color:C.green}}>Ready</span>
+          </div>
+        </div>
+        <p style={{fontSize:14,color:C.textMuted,lineHeight:1.75}}>Ask me anything about your HOA rules — what's permitted, what's a violation, what your rights are. I'll cite the exact clause and page number.</p>
+      </div>
+      <div style={{fontSize:11,fontWeight:700,color:C.textMuted,letterSpacing:".07em",textTransform:"uppercase",marginBottom:10}}>Common questions to get you started</div>
+      {SUGGESTED_GROUPS.map((g,i)=>(
+        <div key={i} style={{marginBottom:7,background:"#fff",borderRadius:13,border:`1px solid ${openCat===i?C.brandBorder:C.line}`,overflow:"hidden",transition:"border-color .15s",boxShadow:C.shadow}}>
+          <button onClick={()=>setOpenCat(openCat===i?-1:i)}
+            style={{width:"100%",padding:"11px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"none",cursor:"pointer",borderBottom:openCat===i?`1px solid ${C.line}`:"none"}}>
+            <span style={{fontWeight:700,fontSize:13.5,color:openCat===i?C.brand:C.text}}>{g.cat}</span>
+            <div style={{transform:openCat===i?"rotate(180deg)":"rotate(0)",transition:"transform .2s",color:openCat===i?C.brand:C.textMuted}}>{Ic.down}</div>
+          </button>
+          {openCat===i&&(
+            <div style={{padding:"6px"}}>
+              {g.qs.map((q,j)=>(
+                <button key={j} onClick={()=>onSend(q)}
+                  style={{width:"100%",textAlign:"left",padding:"9px 11px",borderRadius:8,fontSize:13.5,color:C.textSub,background:"transparent",cursor:"pointer",transition:"all .13s",display:"flex",alignItems:"center",gap:8,fontWeight:500}}
+                  onMouseEnter={e=>{e.currentTarget.style.background=C.brandLight;e.currentTarget.style.color=C.brand;}}
+                  onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.color=C.textSub;}}>
+                  {Ic.arrow}{q}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── DASHBOARD ──────────────────────────────────────────── */
+function Dashboard({setPage,setLoggedIn}) {
+  const [docs,setDocs]=useState(DOCS_DATA);
+  const [activeDoc,setActiveDoc]=useState(DOCS_DATA[0]);
+  const [msgs,setMsgs]=useState([INIT_MSG]);
+  const [input,setInput]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [tab,setTab]=useState("docs");
+  const [sidebar,setSidebar]=useState(true);       // desktop sidebar
+  const [mobileSidebar,setMobileSidebar]=useState(false); // mobile drawer
+  const [dragging,setDragging]=useState(false);
+  const fileRef=useRef(), bottomRef=useRef(), textRef=useRef();
+  const hasAsked=msgs.length>1;
+
+  // Close mobile sidebar on resize to desktop
+  useEffect(()=>{
+    const f=()=>{ if(window.innerWidth>1024) setMobileSidebar(false); };
+    window.addEventListener("resize",f);return()=>window.removeEventListener("resize",f);
+  },[]);
+
+  useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:"smooth"});},[msgs,loading]);
+
+  const send=useCallback((t)=>{
+    const txt=t||input.trim(); if(!txt) return;
+    setInput(""); setMobileSidebar(false);
+    if(textRef.current) textRef.current.style.height="auto";
+    setMsgs(m=>[...m,{id:Date.now(),role:"user",text:txt,time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}]);
+    setLoading(true);
+    setTimeout(()=>{
+      setLoading(false);
+      const keys=["ALLOWED","CONDITIONAL","RESTRICTED","VIOLATION","ANALYSIS"];
+      const k=keys[Math.floor(Math.random()*keys.length)];
+      const v=VERDICT_CFG[k];
+      setMsgs(m=>[...m,{id:Date.now()+1,role:"ai",text:"Based on your CC&Rs, here's what the document says. The relevant section addresses this directly with specific conditions that apply to your situation as a homeowner in this community.",citations:[{page:14,clause:"§4.2",text:"Applicable conditions and homeowner obligations"},{page:22,clause:"§6.1(b)",text:"Additional constraints and owner rights"}],tag:{label:k,color:v.color,bg:v.bg},time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}]);
+    },1700);
+  },[input]);
+
+  const onUpload=()=>{
+    const d={id:Date.now(),name:"New HOA Document.pdf",pages:44,size:"2.2 MB",date:"Just now",color:"#6D28D9"};
+    setDocs(ds=>[d,...ds]); setActiveDoc(d);
+    setMsgs([{id:Date.now()+1,role:"ai",text:"I've loaded **New HOA Document.pdf**. What would you like to know about your HOA rules?",citations:[],tag:null,time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}]);
+  };
+
+  const SidebarContent=()=>(
+    <>
+      <div style={{padding:"14px 14px 10px",borderBottom:`1px solid ${C.line}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <Logo size="sm" onClick={()=>{setPage("home");setMobileSidebar(false);}}/>
+        {/* Close btn on mobile */}
+        <button onClick={()=>setMobileSidebar(false)} style={{display:"none",width:30,height:30,borderRadius:8,background:C.bgSurface,border:`1px solid ${C.line}`,alignItems:"center",justifyContent:"center",color:C.textMuted}} className="mob-nav-overlay">
+          {Ic.close}
+        </button>
+      </div>
+      <div style={{padding:"10px 10px 4px"}}>
+        <button onClick={()=>{setMsgs([INIT_MSG]);setMobileSidebar(false);}}
+          style={{width:"100%",padding:"9px 12px",borderRadius:10,background:C.brandLight,color:C.brand,border:`1px solid ${C.brandBorder}`,fontSize:13.5,fontWeight:700,display:"flex",alignItems:"center",gap:7,cursor:"pointer",transition:"all .15s"}}
+          onMouseEnter={e=>e.currentTarget.style.background="rgba(27,67,50,.14)"}
+          onMouseLeave={e=>e.currentTarget.style.background=C.brandLight}>
+          {Ic.plus} New question
+        </button>
+      </div>
+      <div style={{display:"flex",padding:"8px 10px 0",gap:3}}>
+        {[["docs","Documents"],["history","History"]].map(([t,l])=>(
+          <button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:"7px 0",borderRadius:9,fontSize:12.5,fontWeight:700,background:tab===t?C.bgHover:"transparent",color:tab===t?C.brand:C.textMuted,border:"none",cursor:"pointer",transition:"all .15s"}}>{l}</button>
+        ))}
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:"8px"}}>
+        {tab==="docs"?(
+          <>
+            <div onClick={()=>fileRef.current?.click()}
+              onDragOver={e=>{e.preventDefault();setDragging(true);}}
+              onDragLeave={()=>setDragging(false)}
+              onDrop={e=>{e.preventDefault();setDragging(false);onUpload();}}
+              style={{border:`1.5px dashed ${dragging?C.brand:"rgba(27,67,50,.2)"}`,borderRadius:13,padding:"16px 12px",textAlign:"center",cursor:"pointer",background:dragging?"rgba(27,67,50,.04)":C.bgSurface,transition:"all .18s",margin:"6px 4px 12px"}}>
+              <input ref={fileRef} type="file" accept=".pdf" style={{display:"none"}} onChange={onUpload}/>
+              <div style={{color:C.brand,marginBottom:5,display:"flex",justifyContent:"center"}}>{Ic.upload}</div>
+              <p style={{fontSize:12,color:C.brand,fontWeight:700,margin:"0 0 2px"}}>Upload HOA document</p>
+              <p style={{fontSize:11,color:C.textFaint}}>CC&Rs, bylaws, rules PDF</p>
+            </div>
+            <div style={{fontSize:10.5,fontWeight:700,color:C.textFaint,letterSpacing:".08em",padding:"0 8px 8px",textTransform:"uppercase"}}>Your documents</div>
+            {docs.map(doc=>(
+              <div key={doc.id} className="doc-row" onClick={()=>{setActiveDoc(doc);setMobileSidebar(false);}}
+                style={{display:"flex",alignItems:"center",gap:9,padding:"9px 10px",borderRadius:11,cursor:"pointer",transition:"background .15s",background:activeDoc?.id===doc.id?C.bgHover:"transparent",border:`1px solid ${activeDoc?.id===doc.id?C.brandBorder:"transparent"}`,marginBottom:2}}>
+                <DocBadge color={doc.color}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12.5,fontWeight:600,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{doc.name}</div>
+                  <div style={{fontSize:11,color:C.textMuted,marginTop:2}}>{doc.pages}p · {doc.size} · {doc.date}</div>
+                </div>
+                {activeDoc?.id===doc.id&&<div style={{width:6,height:6,borderRadius:"50%",background:C.brand,flexShrink:0}}/>}
+              </div>
+            ))}
+          </>
+        ):(
+          <>
+            <div style={{fontSize:10.5,fontWeight:700,color:C.textFaint,letterSpacing:".08em",padding:"4px 8px 8px",textTransform:"uppercase"}}>Recent questions</div>
+            {CONVS_DATA.map(c=>(
+              <div key={c.id} className="doc-row" onClick={()=>{send(c.title);setMobileSidebar(false);}}
+                style={{padding:"10px",borderRadius:11,cursor:"pointer",transition:"background .15s",marginBottom:2}}>
+                <div style={{fontSize:12.5,fontWeight:600,color:C.text,marginBottom:4,lineHeight:1.4}}>{c.title}</div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{padding:"2px 7px",borderRadius:99,fontSize:10,fontWeight:700,background:c.tb,color:c.tc,letterSpacing:".04em"}}>{c.tag}</span>
+                  <span style={{fontSize:10.5,color:C.textFaint}}>{c.time}</span>
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+      {/* Profile */}
+      <div style={{padding:"10px",borderTop:`1px solid ${C.line}`}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:11,cursor:"pointer",transition:"background .15s"}}
+          onMouseEnter={e=>e.currentTarget.style.background=C.bgSurface}
+          onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+          <Avatar name="ZB" size={34}/>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:13,fontWeight:700,color:C.text}}>Zaur Bayramov</div>
+            <div style={{fontSize:11,color:C.textMuted,display:"flex",alignItems:"center",gap:4}}>
+              <span style={{width:6,height:6,borderRadius:"50%",background:C.green,display:"inline-block"}}/>Member Plan
+            </div>
+          </div>
+          <button onClick={()=>{setLoggedIn(false);setPage("home");}} title="Sign out"
+            style={{width:28,height:28,borderRadius:7,background:"transparent",color:C.textMuted,display:"flex",alignItems:"center",justifyContent:"center",border:"none",cursor:"pointer",transition:"all .15s"}}
+            onMouseEnter={e=>{e.currentTarget.style.background=C.bgSurface;e.currentTarget.style.color=C.text;}}
+            onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.color=C.textMuted;}}>
+            {Ic.logout}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+
+  return (
+    <div style={{display:"flex",height:"100vh",background:C.bg,overflow:"hidden",position:"relative"}}>
+
+      {/* Desktop sidebar */}
+      {sidebar&&(
+        <aside className="sidebar-desktop" style={{width:272,flexShrink:0,background:"#fff",borderRight:`1px solid ${C.line}`,display:"flex",flexDirection:"column",boxShadow:"2px 0 18px rgba(26,25,23,.04)"}}>
+          <SidebarContent/>
+        </aside>
+      )}
+
+      {/* Mobile sidebar overlay */}
+      {mobileSidebar&&(
+        <>
+          <div onClick={()=>setMobileSidebar(false)} style={{position:"fixed",inset:0,background:"rgba(26,25,23,.45)",zIndex:299,backdropFilter:"blur(3px)"}}/>
+          <aside style={{position:"fixed",left:0,top:0,bottom:0,width:300,background:"#fff",zIndex:300,display:"flex",flexDirection:"column",boxShadow:C.shadowLg,animation:"slideDown .22s ease-out"}}>
+            <SidebarContent/>
+          </aside>
+        </>
+      )}
+
+      {/* Main */}
+      <main style={{flex:1,display:"flex",flexDirection:"column",minWidth:0,background:C.bg}}>
+
+        {/* Header */}
+        <header style={{height:56,background:"rgba(247,246,242,.94)",backdropFilter:"blur(14px)",borderBottom:`1px solid ${C.line}`,padding:"0 clamp(12px,3vw,20px)",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,gap:8}}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            {/* Desktop: toggle sidebar. Mobile: open drawer */}
+            <button
+              onClick={()=>{ if(window.innerWidth>1024){setSidebar(s=>!s);}else{setMobileSidebar(o=>!o);} }}
+              style={{width:34,height:34,borderRadius:9,background:C.bgSurface,border:`1px solid ${C.line}`,display:"flex",alignItems:"center",justifyContent:"center",color:C.textMuted,cursor:"pointer",transition:"all .15s",flexShrink:0}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor=C.brandBorder;e.currentTarget.style.color=C.brand;}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor=C.line;e.currentTarget.style.color=C.textMuted;}}>
+              {Ic.menu}
+            </button>
+            {activeDoc&&(
+              <div className="dash-header-doc" style={{display:"flex",alignItems:"center",gap:8,padding:"4px 10px 4px 5px",borderRadius:10,background:"#fff",border:`1px solid ${C.line}`,boxShadow:C.shadow}}>
+                <DocBadge color={activeDoc.color}/>
+                <div>
+                  <div style={{fontSize:12.5,fontWeight:700,color:C.text,whiteSpace:"nowrap",overflow:"hidden",maxWidth:"30vw",textOverflow:"ellipsis"}}>{activeDoc.name}</div>
+                  <div style={{fontSize:11,color:C.textMuted}}>{activeDoc.pages}p · {activeDoc.size}</div>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="dash-header-right" style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+            <div className="disclaimer-chip" style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:20,background:C.accentLight,border:`1px solid ${C.accentBorder}`}}>
+              <span style={{color:C.accent,display:"flex"}}>{Ic.info}</span>
+              <span style={{fontSize:11,fontWeight:700,color:C.accent,whiteSpace:"nowrap"}}>Not legal advice</span>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:20,background:C.greenLight,border:`1px solid rgba(5,150,105,.18)`,flexShrink:0}}>
+              <div style={{width:6,height:6,borderRadius:"50%",background:C.green,animation:"pulse 2.5s infinite"}}/>
+              <span style={{fontSize:11,fontWeight:700,color:C.green}}>AI Ready</span>
+            </div>
+          </div>
+        </header>
+
+        {/* Scrollable content */}
+        <div style={{flex:1,overflowY:"auto"}}>
+          {!hasAsked
+            ?<WelcomeState onSend={send} docName={activeDoc?.name||"Your HOA Document"}/>
+            :(
+              <div className="msg-max" style={{maxWidth:800,margin:"0 auto",padding:"24px clamp(12px,3vw,24px)"}}>
+                {msgs.map(msg=>(
+                  <div key={msg.id} style={{marginBottom:22,display:"flex",flexDirection:msg.role==="user"?"row-reverse":"row",alignItems:"flex-start",gap:10,animation:"fadeUp .25s ease-out both"}}>
+                    {msg.role==="ai"
+                      ?<div style={{width:32,height:32,borderRadius:10,flexShrink:0,marginTop:2,background:`linear-gradient(145deg,${C.brand},${C.brandMid})`,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",boxShadow:`0 3px 10px rgba(27,67,50,.28)`}}>{Ic.ai}</div>
+                      :<Avatar name="ZB" size={32}/>
+                    }
+                    <div style={{maxWidth:"min(78%,600px)"}}>
+                      {msg.role==="ai"&&msg.tag&&<VerdictBanner tag={msg.tag}/>}
+                      <div style={{padding:"12px 15px",background:msg.role==="user"?`linear-gradient(145deg,${C.brand},${C.brandMid})`:"#fff",borderRadius:msg.role==="user"?"16px 3px 16px 16px":"3px 16px 16px 16px",color:msg.role==="user"?"#fff":C.text,fontSize:14,lineHeight:1.7,boxShadow:msg.role==="user"?`0 4px 18px rgba(27,67,50,.26)`:C.shadow,border:msg.role==="ai"?`1px solid ${C.line}`:"none"}}>
+                        {renderMd(msg.text)}
+                      </div>
+                      {msg.citations?.length>0&&(
+                        <div style={{marginTop:7}}>
+                          <div style={{fontSize:10,fontWeight:700,color:C.textFaint,letterSpacing:".08em",textTransform:"uppercase",marginBottom:4}}>Cited clauses</div>
+                          {msg.citations.map((c,i)=>(
+                            <div key={i} style={{display:"flex",alignItems:"center",gap:7,padding:"7px 10px",background:C.brandLight,borderRadius:9,border:`1px solid ${C.brandBorder}`,cursor:"pointer",fontSize:12,marginBottom:4,transition:"all .15s"}}
+                              onMouseEnter={e=>e.currentTarget.style.background="rgba(27,67,50,.1)"}
+                              onMouseLeave={e=>e.currentTarget.style.background=C.brandLight}>
+                              <span className="mono" style={{background:C.brand,color:"#fff",borderRadius:5,padding:"2px 6px",fontSize:9.5,fontWeight:600,flexShrink:0,whiteSpace:"nowrap"}}>p.{c.page} {c.clause}</span>
+                              <span style={{color:C.textMuted,lineHeight:1.5}}>{c.text}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {msg.role==="ai"&&msg.citations?.length>0&&(
+                        <button onClick={()=>exportAnswer(msg)}
+                          style={{marginTop:7,display:"inline-flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:700,color:C.textMuted,background:"#fff",border:`1px solid ${C.line}`,cursor:"pointer",transition:"all .15s"}}
+                          onMouseEnter={e=>{e.currentTarget.style.borderColor=C.brand;e.currentTarget.style.color=C.brand;e.currentTarget.style.background=C.brandLight;}}
+                          onMouseLeave={e=>{e.currentTarget.style.borderColor=C.line;e.currentTarget.style.color=C.textMuted;e.currentTarget.style.background="#fff";}}>
+                          {Ic.save} Save answer
+                        </button>
+                      )}
+                      <div style={{fontSize:10.5,color:C.textFaint,marginTop:5,textAlign:msg.role==="user"?"right":"left"}}>{msg.time}</div>
+                    </div>
+                  </div>
+                ))}
+                {loading&&(
+                  <div style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:20}}>
+                    <div style={{width:32,height:32,borderRadius:10,background:`linear-gradient(145deg,${C.brand},${C.brandMid})`,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",boxShadow:`0 3px 10px rgba(27,67,50,.28)`,flexShrink:0}}>{Ic.ai}</div>
+                    <div style={{background:"#fff",borderRadius:"3px 16px 16px 16px",padding:"13px 16px",boxShadow:C.shadow,border:`1px solid ${C.line}`}}>
+                      <div style={{display:"flex",gap:4}}>{[0,1,2].map(i=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:C.brand,animation:`bounce 1.2s ${i*.16}s ease-in-out infinite`}}/>)}</div>
+                    </div>
+                  </div>
+                )}
+                <div ref={bottomRef}/>
+              </div>
+            )}
+        </div>
+
+        {/* Input bar */}
+        <div className="input-bar-wrap" style={{padding:"0 clamp(12px,3vw,24px) 16px",maxWidth:800,margin:"0 auto",width:"100%"}}>
+          <div style={{background:"#fff",borderRadius:16,padding:"9px 11px",boxShadow:C.shadowMd,border:`1px solid ${C.lineMid}`,display:"flex",alignItems:"flex-end",gap:7}}>
+            <button style={{width:32,height:32,borderRadius:8,background:C.bgSurface,border:`1px solid ${C.line}`,color:C.textMuted,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer",transition:"all .15s"}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor=C.brandBorder;e.currentTarget.style.color=C.brand;}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor=C.line;e.currentTarget.style.color=C.textMuted;}}>
+              {Ic.attach}
+            </button>
+            <textarea ref={textRef} value={input} onChange={e=>setInput(e.target.value)}
+              onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}}
+              onInput={e=>{e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,120)+"px";}}
+              placeholder="Ask about your HOA rules…" rows={1}
+              style={{flex:1,border:"none",fontSize:14,color:C.text,background:"transparent",lineHeight:1.6,padding:"4px 0",maxHeight:120,overflowY:"auto",resize:"none",outline:"none"}}/>
+            <button className="send-btn" onClick={()=>send()} disabled={!input.trim()}
+              style={{width:34,height:34,borderRadius:9,flexShrink:0,background:input.trim()?`linear-gradient(145deg,${C.brand},${C.brandMid})`:C.bgSurface,color:input.trim()?"#fff":C.textFaint,display:"flex",alignItems:"center",justifyContent:"center",border:input.trim()?"none":`1px solid ${C.line}`,transition:"all .18s",boxShadow:input.trim()?`0 4px 14px rgba(27,67,50,.38)`:"none",cursor:input.trim()?"pointer":"not-allowed"}}>
+              {Ic.send}
+            </button>
+          </div>
+          <p style={{textAlign:"center",fontSize:11,color:C.textFaint,marginTop:6}}>HOA Helper provides information based on your uploaded document. This is not legal advice.</p>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+/* ── ROOT ───────────────────────────────────────────────── */
+export default function App() {
+  const [page,setPage]=useState("home");
+  const [loggedIn,setLoggedIn]=useState(false);
+  return (
+    <>
+      <style>{CSS}</style>
+      {page==="dashboard"?<Dashboard setPage={setPage} setLoggedIn={setLoggedIn}/>
+      :page==="login"?<LoginPage setPage={setPage} setLoggedIn={setLoggedIn}/>
+      :<><Nav page={page} setPage={setPage}/>
+        {page==="home"&&<HomePage setPage={setPage}/>}
+        {page==="about"&&<AboutPage setPage={setPage}/>}
+        {page==="pricing"&&<PricingPage setPage={setPage}/>}
+      </>}
+    </>
+  );
+}
