@@ -20,7 +20,8 @@ export class AuthService {
         picture: string|undefined;
         googleId: string|undefined;
     }):Promise<User>{
-      const user = await this.usersService.findOne(googleUser?.email||"");
+      
+      const user = await this.usersService.findOne(googleUser?.googleId||"");
       if(user){
         return user;
       }
@@ -34,6 +35,7 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       role: user.role,
+      googleId: user.googleId
     };
 
     const accessToken = this.jwtService.sign(payload, {
